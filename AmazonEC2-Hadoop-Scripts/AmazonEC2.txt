@@ -1,0 +1,143 @@
+
+# Start hadoop and run ‘hdfs dfsadmin -report‘ to see whether it runs properly
+
+# Open Multiple VM for Testing
+
+/* You can set the volume when you launch an instance. The following is how to modify the volume when the intance exists. */
+
+1. Open the Amazon EC2 console
+
+2. Choose Volumes, select the volume to modify, and then choose Actions, Modify Volume.
+
+3. The Modify Volume window displays the volume ID and the volume's current configuration, including type, size, and IOPS. For the course purpose, you need to change the size, like 30 GiB.
+
+4. Connect to your instances via SSH, expand the Linux file system:
+
+/* Display Your Storage in EC2 */
+
+lsblk
+
+/* Expand the modified partition using growpart */
+
+growpart /dev/xvda 1 # After Setting the Volumn in EC2
+
+/*  Use the chmod command to make sure that your private key
+file isn’t publicly viewable */ 
+
+chmod 0400 /path/my-key-pair.pem
+
+/* ssh to Amazon VM in CSE Machine */
+
+ssh -i /path/my-key-pair.pem ubuntu@my-public-dns
+
+/* Setup a AmazonEC2 Instance */
+
+1. Lauch a VM instance
+2. Get the Key-value Pair (Private Key) for login that Instance
+3. Add the Instance to the Security Group //Bind the 22 Port to SSH Service in Security Groupt Setting 
+
+# When you are not using your instance, be sure to stop it otherwise it will charge. */
+
+# Don't Terminate the VM otherwise you will lose your data
+
+/* Connect to a AmmazonEC2 Instance */
+
+# Connect to the VM with Putty 
+https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/putty.html
+
+# Login with Public DNS ubuntu@public-dns-address in Putty
+
+/* Install the SSH */
+
+sudo apt-get install openssh-server
+
+/* Create a Hadoop Group */
+
+sudo addgroup hadoop
+sudo adduser --ingroup hadoop hduser
+sudo adduser hadoop
+
+# Create a User under AmazonEC2
+https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/managing-users.html
+
+/* Remove a User */
+
+sudo userdel -r olduser
+
+/* Add Hadoop to sudo User */
+
+sudo visudo
+# User privilege specification
+hadoop ALL=(ALL:ALL) ALL
+
+/* Check the User */
+
+cat /etc/passwd
+
+/* Permit Login with SSH */
+
+sudo nano /etc/ssh/sshd_config
+PasswordAuthentication yes
+
+/* Start the SSH Service */
+
+sudo service ssh restart
+
+/* Switch to New Created Account */ 
+
+# Optional # Just SSH into the User
+sudo su - hadoop
+
+/* SSH to the VM as a Hadoop User */
+
+ssh hadoop@my-pulib-dns
+
+# SSH without Password and Private Key
+
+# You can login with user name without private key
+in Putty after this step
+
+# hadoop@public-dns-address instead of ubuntu@public-dns-address
+
+/* Create an RSA Key Pair with an Emtpy Password */
+
+su - hduser
+ssh-keygen -t rsa -P ""
+
+/* Enable SSH Access to Your Local Machine */
+
+cat $HOME/.ssh/id_rsa.pub >> $HOME/.ssh/authorized_keys
+# Regenerate after Restart
+
+/* Test the SSH Setup by Connecting to Your Local Machine with the hduser Use */
+
+ssh localhost
+
+/* Generate SSH key pairs for hduser */
+
+#Use empty passphrase
+ssh-keygen -t rsa -f id_rsa
+mkdir .ssh
+mv id_rsa* .ssh/
+cat .ssh/id_rsa.pub >> .ssh/authorized_keys
+chmod 700 .ssh/
+chmod 600 .ssh/authorized_keys 
+
+/* Configure for Non-standard SSH Port */
+
+$HOME/.ssh/config
+
+/* SSH Debugging */
+
+ssh -vvv localhost
+/etc/ssh/sshd_config #PubkeyAuthentication #AllowUser
+/etc/init.d/ssh reload
+
+/* Disabling IPv6 */
+
+/etc/sysctl.conf
+
+/* Check whether IPv6 is disable #0 Means Enable */
+
+cat /proc/sys/net/ipv6/conf/all/disable_ipv6
+

@@ -1,0 +1,48 @@
+<configuration>
+
+<property>
+	<name>yarn.resourcemanager.hostname</name>
+	<value>ec2-18-221-6-131.us-east-2.compute.amazonaws.com</value>
+</property>
+
+<property>
+	<name>yarn.resourcemanager.address</name>
+	<value>ec2-18-221-6-131.us-east-2.compute.amazonaws.com:8032</value>
+</property>
+
+<property>
+	<name>yarn.resourcemanager.scheduler.address</name>
+	<value>ec2-18-221-6-131.us-east-2.compute.amazonaws.com:8030</value>
+</property>
+
+<property>
+	<name>yarn.nodemanager.aux-services</name>
+	<value>mapreduce_shuffle</value>
+</property>
+
+<property>                                                                  
+    <name>yarn.nodemanager.pmem-check-enabled</name>                        
+    <value>false</value>                                                    
+</property>                                                                 
+
+<property>                                                                  
+    <name>yarn.nodemanager.vmem-check-enabled</name>                        
+    <value>false</value>                                                    
+</property>
+
+<property>
+<name>yarn.application.classpath</name>
+<value>
+/usr/local/hadoop/etc/hadoop,
+/usr/local/hadoop/share/hadoop/common/*,
+/usr/local/hadoop/share/hadoop/common/lib/*,
+/usr/local/hadoop/share/hadoop/hdfs/*,
+/usr/local/hadoop/share/hadoop/hdfs/lib/*,
+/usr/local/hadoop/share/hadoop/mapreduce/*,
+/usr/local/hadoop/share/hadoop/mapreduce/lib/*,
+/usr/local/hadoop/share/hadoop/yarn/*,
+/usr/local/hadoop/share/hadoop/yarn/lib/*
+</value>
+</property>
+
+</configuration>

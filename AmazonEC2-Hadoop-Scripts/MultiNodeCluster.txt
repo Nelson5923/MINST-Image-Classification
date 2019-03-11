@@ -1,0 +1,216 @@
+/* Create Multiple Single Node Cluster */
+
+/* Connect Two Computer via Hubs */
+
+# vi /etc/hosts # enter the following lines in /etc/hosts.
+
+# vi /etc/hosts
+
+enter the following lines in the /etc/hosts file.
+192.168.1.109 hadoop-master 
+192.168.1.145 hadoop-slave-1 
+192.168.56.1 hadoop-slave-2
+
+# Doesn't Work, 	Need to Be IP Adress
+
+hadoop@ec2-13-230-207-110.ap-northeast-1.compute.amazonaws.com \ hadoop-master 
+
+hadoop@ec2-54-249-25-6.ap-northeast-1.compute.amazonaws.com \
+hadoop-slave-1 
+
+hadoop@ec2-18-179-205-35.ap-northeast-1.compute.amazonaws.com \ hadoop-slave-2
+
+hadoop@ec2-13-231-16-197.ap-northeast-1.compute.amazonaws.com \ hadoop-slave-3
+
+/* Distribute the SSH public key of Master to Slave */
+
+# SSH without Password
+
+ssh-copy-id -i ~/.ssh/id_rsa.pub hadoop@ec2-13-230-207-110.ap-northeast-1.compute.amazonaws.com 
+ssh-copy-id -i ~/.ssh/id_rsa.pub hadoop@ec2-54-249-25-6.ap-northeast-1.compute.amazonaws.com 
+ssh-copy-id -i ~/.ssh/id_rsa.pub hadoop@ec2-18-179-205-35.ap-northeast-1.compute.amazonaws.com 
+ssh-copy-id -i ~/.ssh/id_rsa.pub hadoop@ec2-13-231-16-197.ap-northeast-1.compute.amazonaws.com 
+
+ssh hadoop-master
+ssh hadoop-slave-1 
+ssh hadoop-slave-2
+ssh hadoop-slave-3
+
+/* Define the Name Node on Master Only */
+
+conf/masters
+hadoop-master # Just add a name # one host name per line
+
+/* Define the Slave Node on Master Only */
+
+conf/slaves
+hadoop-slave-1 
+hadoop-slave-2
+
+/* Prepare JAVA_HOME */
+
+nano /hadoop/conf/hadoop-env.sh
+export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64
+
+/* Configure conf/*-site.xml on all machine */
+
+fs.default.name # Define the Port & Hostname of Master Node
+hadoop.tmp.dir # app/hadoop/tmp
+# A base for other temporary directories
+# conf/core-site.xml
+
+mapred.job.tracker # Define the Port & Hostname of Job Tracker
+# conf/mapred-site.xml
+
+dfs.replication # Define the Number of Job Replication
+# conf/hdfs-site.xml
+
+/* Creating a Working Directory under /hadoop */
+
+mkdir /usr/local/hadoop/ierg4300
+
+/* Create a Directory for File Storage */
+
+mkdir -p /app/hadoop/tmp
+chown hduser:hadoop /app/hadoop/tmp
+chmod 750 /app/hadoop/tmp 
+
+# ...and if you want to tighten up security, 
+chmod from 755 to 750...
+
+/* 
+
+/* Send the File to the Slaves */
+
+scp -r conf hadoop@ec2-13-230-207-110.ap-northeast-1.compute.amazonaws.com:/usr/local/hadoop
+scp -r conf hadoop@ec2-54-249-25-6.ap-northeast-1.compute.amazonaws.com:/usr/local/hadoop
+scp -r conf hadoop@ec2-18-179-205-35.ap-northeast-1.compute.amazonaws.com:/usr/local/hadoop
+scp -r conf hadoop@ec2-13-231-16-197.ap-northeast-1.compute.amazonaws.com:/usr/local/hadoop
+
+/* Formatting the HDFS filesystem via the NameNode */
+
+bin/hadoop namenode -format 
+
+# Need to Restart the Cluster after Formatting
+
+# initializes the directory specified by the dfs.name.dir variable
+
+/* Starting a Multicluster */
+
+sbin/start-dfs.sh # Run These Scripts on Name Node
+sbin/start-mapred.sh # For old veriosn Hadoop
+sbin/start-yarn.sh # For Version 2.7.5
+sbin/start-all.sh
+
+# We begin with starting the HDFS daemons: the NameNode daemon is started on master, 
+and DataNode daemons are started on all slaves (here: master and slave).
+ 
+# Then we start the MapReduce daemons: the JobTracker is started on master, 
+and TaskTracker daemons are started on all slaves (here: master and slave).
+
+# We begin with stopping the MapReduce daemons: the JobTracker is stopped on master, 
+and TaskTracker daemons are stopped on all slaves (here: master and slave).
+
+# Then we stop the HDFS daemons: the NameNode daemon is stopped on master, 
+and DataNode daemons are stopped on all slaves (here: master and slave).
+
+
+/* Check the Hadoop Process on Name Node or Data Node */
+
+jps
+hdfs dfsadmin -report
+http://ec2-13-58-90-98.us-east-2.compute.amazonaws.com:50070 # Open on Windows with Public DNS
+netstat # You can also check with netstat if Hadoop is listening on the configured ports.
+
+/* Access web interfaces */
+
+Cluster status: http://localhost:8088 
+HDFS status: http://localhost:50070 
+Secondary NameNode status: http://localhost:50090
+
+/* Stopping a Multicluster */
+
+sbin/stop-mapred.sh # on master
+sbin/stop-dfs.sh
+sbin/stop-yarn.sh
+sbin/stop-all.sh # better to run separate
+
+/* Generate 2GB Data Set for Terasort */
+
+./bin/hadoop jar ./share/hadoop/mapreduce/hadoop-mapreduce-examples-*.jar teragen 20000000 terasort/input
+
+/* Remove the File After Terasort */
+
+hadoop fs -rm -r /user/hadoop/terasort
+
+/* Generate 20GB Data Set for Terasort */
+
+time ./bin/hadoop jar ./share/hadoop/mapreduce/hadoop-mapreduce-examples-*.jar teragen 200000000 terasort/input
+
+# Need to Resize Amazon Volumn First
+lsblk
+sudo growpart /dev/xvda 1 
+
+/* Copy the Shakespeare Data Set to HDFS */
+
+hadoop fs -copyFromLocal ./shakespeare /user/hadoop/shakespeare
+
+hadoop fs -ls /user/hadoop/shakespeare
+
+/* Run the Hadoop Streaming */
+
+bin/hadoop jar ./share/hadoop/tools/lib/hadoop-streaming-2.7.5.jar \
+-file ./mapper.py -mapper ./mapper.py \
+-file ./reducer.py -reducer ./reducer.py \
+-input /user/hadoop/shakespeare/* \
+-output /user/hadoop/shakespeare-output
+
+/* Retrieve the Output */ 
+
+hadoop fs -cat /user/hadoop/shakespeare-output/part-00000
+
+/* Test the Program on Console */
+
+echo "foo foo quux labs foo bar quux" | /home/hduser/mapper.py
+echo "foo foo quux labs foo bar quux" | /home/hduser/mapper.py | sort -k1,1 | /home/hduser/reducer.py
+
+/* Optimize the Program with Iterators & Generator */
+
+# Generally speaking, iterators and generators have the advantage that an element of a sequence is not produced until you actually need it. This can help a lot in terms of computational expensiveness or memory consumption depending on the task at hand.
+
+/* Calculate the Running Time with time Command */
+
+time #COMMAND
+
+/* Compile the Java Program */
+
+bin/hadoop com.sun.tools.javac.Main WordCount.java
+jar cf wc.jar WordCount*.class
+
+/* Run the Java Program */
+
+bin/hadoop jar wc.jar \
+WordCount /user/hadoop/shakespeare/* \
+/user/hadoop/shakespeare-output
+
+javac -classpath `yarn classpath` CommunityDetection.java
+jar cf cd.jar CommunityDetection*.class 
+
+/* IE Cluster */
+
+yarn application -list
+yarn application -kill application_1537760390366_0583
+javac -classpath `yarn classpath` CommunityDetection.java
+jar cf cd.jar CommunityDetection*.class 
+
+
+/* Some Java Command */
+
+mkdir wordcount
+javac -classpath `yarn classpath` WordCount.java -d wordcount
+jar -cvf wordcount.jar -C wordcount/ .
+hadoop jar wordcount.jar WordCount /input /output
+hadoop fs -cat /output/part-r-00000
+The setup() and cleanup() methods are simply "hooks" for you, the developer/programmer, to have a chance to do something before and after your map/reduce tasks.
+
+
